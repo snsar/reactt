@@ -38,7 +38,7 @@ function ChatBot() {
         <div className="card w-96 bg-base-100 shadow-xl">
           <div className="card-body">
             <div className="flex justify-between items-center">
-              <h2 className="card-title">Chat với AI</h2>
+              <h2 className="card-title">Chat</h2>
               <button 
                 onClick={() => setIsOpen(false)}
                 className="btn btn-square btn-sm"
