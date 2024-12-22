@@ -1,8 +1,10 @@
 import axiosClient from "./axiosClient";
 
 const productApi = {
-  getAll: () => {
-    return axiosClient.get("/public/products");
+  getAll: (page = 0, size = 20) => {
+    return axiosClient.get("/public/products", {
+      params: { page, size },
+    });
   },
 
   getById: (id) => {
