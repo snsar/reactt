@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { removeFromCart, updateQuantity, clearCart } from '../store/slices/cartSlice';
+import { removeFromCart, updateQuantity, clearCart, setCartItems } from '../store/slices/cartSlice';
 import { createOrder } from '../store/slices/orderSlice';
 import { toast } from 'react-toastify';
+import cartApi from '../api/cartApi';
 
 function Cart() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items, totalAmount } = useSelector((state) => state.cart);
-  const { user } = useSelector((state) => state.auth);
+  const { items, totalAmount, cartId } = useSelector((state) => state.cart);
+  const { user, token } = useSelector((state) => state.auth);
+  const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [shippingInfo, setShippingInfo] = useState({
@@ -20,19 +22,56 @@ function Cart() {
     note: ''
   });
 
-  const handleQuantityChange = (id, newQuantity, stockQuantity) => {
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const response = await cartApi.viewCart();
+        if (response.data) {
+          dispatch(setCartItems(response.data));
+        }
+      } catch (error) {
+        console.error('Failed to fetch cart:', error);
+        toast.error('Không thể tải thông tin giỏ hàng');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchCart();
+  }, [dispatch, token]);
+
+  const handleQuantityChange = async (id, newQuantity, stockQuantity) => {
     if (newQuantity < 1) return;
     if (newQuantity > stockQuantity) {
       toast.warning(`Chỉ còn ${stockQuantity} sản phẩm trong kho`);
       return;
     }
-    dispatch(updateQuantity({ id, quantity: newQuantity }));
-    toast.success('Đã cập nhật số lượng');
+    try {
+      await cartApi.updateQuantity({
+        cartId,
+        productId: id,
+        quantity: newQuantity
+      });
+      dispatch(updateQuantity({ id, quantity: newQuantity }));
+      toast.success('Đã cập nhật số lượng');
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+      toast.error('Không thể cập nhật số lượng');
+    }
   };
 
-  const handleRemoveItem = (id) => {
-    dispatch(removeFromCart(id));
-    toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+  const handleRemoveItem = async (id) => {
+    try {
+      await cartApi.deleteCartItem(cartId, id);
+      dispatch(removeFromCart(id));
+      toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
+    } catch (error) {
+      console.error('Failed to remove item:', error);
+      toast.error('Không thể xóa sản phẩm');
+    }
   };
 
   const calculateSubtotal = () => {
@@ -69,10 +108,10 @@ function Cart() {
     if (!shippingInfo.phone.trim()) {
       errors.phone = 'Vui lòng nhập số điện thoại';
     } else if (!/^[0-9]{10}$/.test(shippingInfo.phone.trim())) {
-      errors.phone = 'S��� điện thoại không hợp lệ';
+      errors.phone = 'Số điện thoại không hợp lệ';
     }
     if (!shippingInfo.address.trim()) {
-      errors.address = 'Vui lòng nhập địa chỉ giao hàng';
+      errors.address = 'Vui lòng nh���p địa chỉ giao hàng';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -128,6 +167,33 @@ function Cart() {
       setIsCheckingOut(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="py-16 text-center">
+        <div className="loading loading-spinner loading-lg"></div>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return (
+      <div className="py-16 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <i className="fas fa-shopping-cart text-6xl text-gray-300 mb-4"></i>
+          <h1 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h1>
+          <p className="text-gray-600 mb-8">Bạn cần đăng nhập để xem giỏ hàng</p>
+          <Link to="/login" className="btn btn-primary">
+            <i className="fas fa-sign-in-alt mr-2"></i>
+            Đăng nhập
+          </Link>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
