@@ -1,23 +1,25 @@
-import axiosClient from './axiosClient';
+import axiosClient from "./axiosClient";
 
 const cartApi = {
-  viewCart: () => {
-    return axiosClient.get('/public/view-cart');
+  getCart: () => {
+    return axiosClient.get("/public/cart");
   },
 
-  addToCart: (productId, quantity) => {
-    return axiosClient.post(`/public/add-product-to-cart/${productId}`, null, {
-      params: { quantity }
-    });
+  addItem: (productId, quantity) => {
+    return axiosClient.post("/public/cart/add", { productId, quantity });
   },
 
-  updateQuantity: (cartItemData) => {
-    return axiosClient.put('/public/carts/update-product-quantity', cartItemData);
+  updateQuantity: (productId, quantity) => {
+    return axiosClient.put("/public/cart/update", { productId, quantity });
   },
 
-  removeItem: (cartId, productId) => {
-    return axiosClient.delete(`/public/carts/delete-cart-item/${cartId}/${productId}`);
-  }
+  removeItem: (productId) => {
+    return axiosClient.delete(`/public/cart/remove/${productId}`);
+  },
+
+  clearCart: () => {
+    return axiosClient.delete("/public/cart/clear");
+  },
 };
 
-export default cartApi; 
+export default cartApi;

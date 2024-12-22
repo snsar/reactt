@@ -1,15 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Rating } from 'react-simple-star-rating';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
+import { motion } from 'framer-motion';
 import AddToCart from '../components/product/AddToCart';
 import ProductReviews from '../components/product/ProductReviews';
+import RelatedProducts from '../components/product/RelatedProducts';
 import productApi from '../api/productApi';
+import 'swiper/css';
+import 'swiper/css/free-mode';
+import 'swiper/css/navigation';
+import 'swiper/css/thumbs';
 
 function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [thumbsSwiper, setThumbsSwiper] = useState(null);
+  const [selectedTab, setSelectedTab] = useState('description');
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -58,6 +68,9 @@ function ProductDetail() {
     );
   }
 
+  // Tạo mảng hình ảnh từ sản phẩm
+  const productImages = [product.imageUrl, ...(product.images || [])];
+
   return (
     <div className="py-8">
       {/* Breadcrumb */}
@@ -72,25 +85,75 @@ function ProductDetail() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
         {/* Product Images */}
         <div className="space-y-4">
-          <div className="aspect-square rounded-lg overflow-hidden bg-white">
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-full object-contain product-image"
-            />
-          </div>
+          <Swiper
+            spaceBetween={10}
+            navigation={true}
+            thumbs={{ swiper: thumbsSwiper }}
+            modules={[FreeMode, Navigation, Thumbs]}
+            className="aspect-square rounded-lg overflow-hidden bg-white"
+          >
+            {productImages.map((image, index) => (
+              <SwiperSlide key={index}>
+                <img
+                  src={image}
+                  alt={`${product.name} - ${index + 1}`}
+                  className="w-full h-full object-contain"
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+          
+          <Swiper
+            onSwiper={setThumbsSwiper}
+            spaceBetween={10}
+            slidesPerView={4}
+            freeMode={true}
+            watchSlidesProgress={true}
+            modules={[FreeMode, Navigation, Thumbs]}
+            className="thumbs-swiper"
+          >
+            {productImages.map((image, index) => (
+              <SwiperSlide key={index}>
+                <div className="aspect-square rounded-lg overflow-hidden bg-white cursor-pointer">
+                  <img
+                    src={image}
+                    alt={`${product.name} - thumbnail ${index + 1}`}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
 
         {/* Product Info */}
         <div className="space-y-6">
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
             <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+            <div className="flex items-center gap-4 mb-4">
+              <Rating
+                readonly
+                initialValue={product.rating || 0}
+                size={20}
+              />
+              <span className="text-gray-500">
+                ({product.reviewCount || 0} đánh giá)
+              </span>
+            </div>
             <div className="mt-4 space-y-2">
-              {product.promotePrice ? (
+              {product.discount > 0 ? (
                 <>
-                  <p className="text-2xl text-primary font-bold">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.promotePrice)}
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <p className="text-2xl text-primary font-bold">
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price * (1 - product.discount/100))}
+                    </p>
+                    <span className="px-2 py-1 bg-red-500 text-white rounded-lg text-sm">
+                      -{product.discount}%
+                    </span>
+                  </div>
                   <p className="text-lg text-gray-500 line-through">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
                   </p>
@@ -101,6 +164,14 @@ function ProductDetail() {
                 </p>
               )}
             </div>
+          </motion.div>
+
+          {/* Stock Status */}
+          <div className="flex items-center gap-2">
+            <span className={`w-3 h-3 rounded-full ${product.importQuantity > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
+            <span className={product.importQuantity > 0 ? 'text-green-500' : 'text-red-500'}>
+              {product.importQuantity > 0 ? 'Còn hàng' : 'Hết hàng'}
+            </span>
           </div>
 
           {/* Add to Cart */}
@@ -119,17 +190,28 @@ function ProductDetail() {
               </div>
               <div>
                 <span className="text-gray-600">Thương hiệu:</span>
-                <span className="ml-2 font-medium">{product.brand?.name}</span>
+                <Link 
+                  to={`/products?brand=${product.brand?.id}`}
+                  className="ml-2 font-medium hover:text-primary"
+                >
+                  {product.brand?.name}
+                </Link>
               </div>
               <div>
                 <span className="text-gray-600">Danh mục:</span>
-                <span className="ml-2 font-medium">
-                  {product.categories?.map(cat => cat.name).join(', ')}
+                <span className="ml-2">
+                  {product.categories?.map((cat, index) => (
+                    <span key={cat.id}>
+                      <Link 
+                        to={`/products?category=${cat.id}`}
+                        className="font-medium hover:text-primary"
+                      >
+                        {cat.name}
+                      </Link>
+                      {index < product.categories.length - 1 && ', '}
+                    </span>
+                  ))}
                 </span>
-              </div>
-              <div>
-                <span className="text-gray-600">Số lượng còn:</span>
-                <span className="ml-2 font-medium">{product.importQuantity}</span>
               </div>
               <div>
                 <span className="text-gray-600">Đã bán:</span>
@@ -137,21 +219,70 @@ function ProductDetail() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Product Description */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Mô tả sản phẩm</h2>
-            <div className="prose max-w-none">
-              <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
-            </div>
+      {/* Product Details Tabs */}
+      <div className="card bg-base-100 shadow-sm mb-12">
+        <div className="card-body">
+          <div className="tabs tabs-boxed">
+            <button 
+              className={`tab ${selectedTab === 'description' ? 'tab-active' : ''}`}
+              onClick={() => setSelectedTab('description')}
+            >
+              Mô tả sản phẩm
+            </button>
+            <button 
+              className={`tab ${selectedTab === 'specs' ? 'tab-active' : ''}`}
+              onClick={() => setSelectedTab('specs')}
+            >
+              Thông số kỹ thuật
+            </button>
+            <button 
+              className={`tab ${selectedTab === 'reviews' ? 'tab-active' : ''}`}
+              onClick={() => setSelectedTab('reviews')}
+            >
+              Đánh giá
+            </button>
+          </div>
+
+          <div className="mt-6">
+            {selectedTab === 'description' && (
+              <div className="prose max-w-none">
+                <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
+              </div>
+            )}
+
+            {selectedTab === 'specs' && (
+              <div className="overflow-x-auto">
+                <table className="table">
+                  <tbody>
+                    {product.specifications?.map((spec, index) => (
+                      <tr key={index}>
+                        <td className="font-medium w-1/3">{spec.name}</td>
+                        <td>{spec.value}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {selectedTab === 'reviews' && (
+              <ProductReviews productId={id} />
+            )}
           </div>
         </div>
       </div>
 
-      {/* Reviews Section */}
+      {/* Related Products */}
       <div className="card bg-base-100 shadow-sm">
         <div className="card-body">
-          <ProductReviews productId={id} />
+          <h2 className="text-xl font-semibold mb-6">Sản phẩm liên quan</h2>
+          <RelatedProducts 
+            categoryIds={product.categories?.map(cat => cat.id)} 
+            currentProductId={product.id}
+          />
         </div>
       </div>
     </div>

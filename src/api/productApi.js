@@ -9,15 +9,25 @@ const productApi = {
     return axiosClient.get(`/public/product/${id}`);
   },
 
-  getByCategory: (categoryId, params) => {
-    return axiosClient.get(`/public/products/categories/${categoryId}`, {
-      params,
+  getRelated: ({ categoryIds, currentProductId, limit = 6 }) => {
+    return axiosClient.get("/public/products/related", {
+      params: {
+        categoryIds: categoryIds.join(","),
+        currentProductId,
+        limit,
+      },
     });
   },
 
   searchByKeyword: (keyword, params) => {
     return axiosClient.get("/public/products/search-by-keyword", {
       params: { ...params, keyword },
+    });
+  },
+
+  getByCategory: (categoryId, params) => {
+    return axiosClient.get(`/public/products/categories/${categoryId}`, {
+      params,
     });
   },
 
