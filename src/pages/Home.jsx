@@ -37,8 +37,47 @@ function Home() {
     }
   ];
 
+  const categories = [
+    {
+      id: 1,
+      name: 'Điện thoại',
+      icon: 'fas fa-mobile-alt',
+      color: 'bg-blue-500'
+    },
+    {
+      id: 2,
+      name: 'Laptop',
+      icon: 'fas fa-laptop',
+      color: 'bg-red-500'
+    },
+    {
+      id: 3,
+      name: 'Máy tính bảng',
+      icon: 'fas fa-tablet-alt',
+      color: 'bg-green-500'
+    },
+    {
+      id: 4,
+      name: 'Phụ kiện',
+      icon: 'fas fa-headphones',
+      color: 'bg-purple-500'
+    },
+    {
+      id: 5,
+      name: 'Smart Home',
+      icon: 'fas fa-home',
+      color: 'bg-yellow-500'
+    },
+    {
+      id: 6,
+      name: 'Gaming',
+      icon: 'fas fa-gamepad',
+      color: 'bg-pink-500'
+    }
+  ];
+
   return (
-    <div>
+    <div className="space-y-16">
       {/* Hero Section with Swiper */}
       <section className="min-h-[70vh]">
         <Swiper
@@ -68,8 +107,11 @@ function Home() {
                     transition={{ duration: 0.5 }}
                   >
                     <h1 className="mb-5 text-5xl font-bold">{slide.title}</h1>
-                    <p className="mb-5">{slide.description}</p>
-                    <Link to="/products" className="btn btn-primary">Mua sắm ngay</Link>
+                    <p className="mb-5 text-lg">{slide.description}</p>
+                    <Link to="/products" className="btn btn-primary btn-lg">
+                      <i className="fas fa-shopping-cart mr-2"></i>
+                      Mua sắm ngay
+                    </Link>
                   </motion.div>
                 </div>
               </div>
@@ -78,17 +120,54 @@ function Home() {
         </Swiper>
       </section>
 
-      {/* Featured Products Section */}
+      {/* Categories Section */}
       <section className="py-16 bg-base-200">
-        <div className="container mx-auto">
+        <div className="container mx-auto px-4">
           <motion.h2 
-            className="text-3xl font-bold text-center mb-8"
+            className="text-3xl font-bold text-center mb-12"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            Sản phẩm nổi bật
+            Danh mục sản phẩm
           </motion.h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category.id}
+                className="group cursor-pointer"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <div className="flex flex-col items-center space-y-4">
+                  <div className={`w-20 h-20 rounded-full ${category.color} text-white flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300`}>
+                    <i className={`${category.icon} text-3xl`}></i>
+                  </div>
+                  <span className="font-medium text-center">{category.name}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Products Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold mb-4">Sản phẩm nổi bật</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Khám phá những sản phẩm công nghệ hàng đầu với chất lượng vượt trội và giá cả hợp lý
+            </p>
+          </motion.div>
+          
           {isLoading ? (
             <div className="flex justify-center">
               <span className="loading loading-spinner loading-lg"></span>
@@ -126,7 +205,11 @@ function Home() {
             </Swiper>
           )}
           <div className="text-center mt-8">
-            <Link to="/products" className="btn btn-outline btn-primary">
+            <Link 
+              to="/products" 
+              className="btn btn-outline btn-primary btn-lg"
+            >
+              <i className="fas fa-th-list mr-2"></i>
               Xem tất cả sản phẩm
             </Link>
           </div>
@@ -134,8 +217,8 @@ function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16">
-        <div className="container mx-auto">
+      <section className="py-16 bg-base-200">
+        <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <motion.div 
               className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300"
@@ -144,11 +227,11 @@ function Home() {
               viewport={{ once: true }}
             >
               <div className="card-body items-center text-center">
-                <div className="text-primary text-5xl mb-4">
+                <div className="text-primary text-5xl mb-4 transform transition-transform duration-300 hover:scale-110">
                   <i className="fas fa-shield-alt"></i>
                 </div>
-                <h3 className="card-title">Chất lượng đảm bảo</h3>
-                <p>Cam kết chính hãng 100% với đầy đủ phụ kiện và bảo hành</p>
+                <h3 className="card-title text-xl mb-2">Chất lượng đảm bảo</h3>
+                <p className="text-gray-600">Cam kết chính hãng 100% với đầy đủ phụ kiện và bảo hành</p>
               </div>
             </motion.div>
             
@@ -160,11 +243,11 @@ function Home() {
               transition={{ delay: 0.2 }}
             >
               <div className="card-body items-center text-center">
-                <div className="text-primary text-5xl mb-4">
+                <div className="text-primary text-5xl mb-4 transform transition-transform duration-300 hover:scale-110">
                   <i className="fas fa-truck"></i>
                 </div>
-                <h3 className="card-title">Giao hàng nhanh chóng</h3>
-                <p>Giao hàng trong vòng 24h với đơn hàng nội thành</p>
+                <h3 className="card-title text-xl mb-2">Giao hàng nhanh chóng</h3>
+                <p className="text-gray-600">Giao hàng trong vòng 24h với đơn hàng nội thành</p>
               </div>
             </motion.div>
             
@@ -176,14 +259,42 @@ function Home() {
               transition={{ delay: 0.4 }}
             >
               <div className="card-body items-center text-center">
-                <div className="text-primary text-5xl mb-4">
+                <div className="text-primary text-5xl mb-4 transform transition-transform duration-300 hover:scale-110">
                   <i className="fas fa-sync"></i>
                 </div>
-                <h3 className="card-title">Đổi trả miễn phí</h3>
-                <p>Đổi trả sản phẩm trong vòng 7 ngày nếu có lỗi từ nhà sản xuất</p>
+                <h3 className="card-title text-xl mb-2">Đổi trả miễn phí</h3>
+                <p className="text-gray-600">Đổi trả sản phẩm trong vòng 7 ngày nếu có lỗi từ nhà sản xuất</p>
               </div>
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Newsletter Section */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            className="max-w-3xl mx-auto text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-3xl font-bold mb-4">Đăng ký nhận tin</h2>
+            <p className="text-gray-600 mb-8">
+              Đăng ký để nhận thông tin về sản phẩm mới và khuyến mãi hấp dẫn
+            </p>
+            <form className="flex flex-col sm:flex-row gap-4 justify-center">
+              <input 
+                type="email" 
+                placeholder="Nhập email của bạn" 
+                className="input input-bordered w-full max-w-md" 
+              />
+              <button className="btn btn-primary">
+                <i className="fas fa-paper-plane mr-2"></i>
+                Đăng ký
+              </button>
+            </form>
+          </motion.div>
         </div>
       </section>
     </div>
