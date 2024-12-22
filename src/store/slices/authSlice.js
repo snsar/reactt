@@ -1,8 +1,8 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import authApi from '../../api/authApi';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import authApi from "../../api/authApi";
 
 export const login = createAsyncThunk(
-  'auth/login',
+  "auth/login",
   async (credentials, { rejectWithValue }) => {
     try {
       const response = await authApi.login(credentials);
@@ -14,7 +14,7 @@ export const login = createAsyncThunk(
 );
 
 export const register = createAsyncThunk(
-  'auth/register',
+  "auth/register",
   async (userData, { rejectWithValue }) => {
     try {
       const response = await authApi.register(userData);
@@ -26,10 +26,10 @@ export const register = createAsyncThunk(
 );
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState: {
     user: null,
-    token: localStorage.getItem('token'),
+    token: localStorage.getItem("token"),
     isLoading: false,
     error: null,
   },
@@ -37,7 +37,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.user = null;
       state.token = null;
-      localStorage.removeItem('token');
+      localStorage.removeItem("token");
     },
   },
   extraReducers: (builder) => {
@@ -48,9 +48,13 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = {
+          username: action.payload.username,
+          email: action.payload.email,
+          roles: action.payload.roles,
+        };
         state.token = action.payload.token;
-        localStorage.setItem('token', action.payload.token);
+        localStorage.setItem("token", action.payload.token);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;

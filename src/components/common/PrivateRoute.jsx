@@ -1,31 +1,14 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import PropTypes from 'prop-types';
 
-function PrivateRoute({ children, roles }) {
-  const { user, token } = useSelector((state) => state.auth);
-  const location = useLocation();
+function PrivateRoute({ children }) {
+  const { token } = useSelector((state) => state.auth);
 
   if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  if (roles?.length > 0 && user?.listRoles) {
-    if (!roles.some(role => user.listRoles.includes(role))) {
-      return <Navigate to="/" replace />;
-    }
+    return <Navigate to="/login" replace />;
   }
 
   return children;
 }
-
-PrivateRoute.propTypes = {
-  children: PropTypes.node.isRequired,
-  roles: PropTypes.arrayOf(PropTypes.string)
-};
-
-PrivateRoute.defaultProps = {
-  roles: []
-};
 
 export default PrivateRoute;

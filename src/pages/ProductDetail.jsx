@@ -1,56 +1,36 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../store/slices/cartSlice';
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Rating } from 'react-simple-star-rating';
+import AddToCart from '../components/product/AddToCart';
+import ProductReviews from '../components/product/ProductReviews';
 import productApi from '../api/productApi';
 
 function ProductDetail() {
   const { id } = useParams();
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
   const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductData = async () => {
       try {
+        setIsLoading(true);
         const response = await productApi.getById(id);
         setProduct(response.data);
       } catch (err) {
+        console.error('Failed to fetch product:', err);
         setError('Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.');
-        console.error('Error fetching product:', err);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
-    fetchProduct();
+    fetchProductData();
   }, [id]);
 
-  const handleAddToCart = async () => {
-    if (!user) {
-      // Nếu chưa đăng nhập, chuyển hướng đến trang đăng nhập
-      navigate('/login');
-      return;
-    }
-
-    try {
-      await dispatch(addToCart({ productId: product.productId, quantity })).unwrap();
-      // Hiển thị thông báo thành công
-      alert('Đã thêm sản phẩm vào giỏ hàng');
-    } catch (err) {
-      // Hiển thị thông báo lỗi
-      alert('Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.');
-      console.error('Error adding to cart:', err);
-    }
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center min-h-[400px]">
         <span className="loading loading-spinner loading-lg"></span>
       </div>
     );
@@ -58,91 +38,120 @@ function ProductDetail() {
 
   if (error) {
     return (
-      <div className="alert alert-error">
-        <span>{error}</span>
+      <div className="py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">{error}</h1>
+        <Link to="/products" className="btn btn-primary">
+          Quay lại danh sách sản phẩm
+        </Link>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="alert alert-error">
-        <span>Không tìm thấy sản phẩm</span>
+      <div className="py-8 text-center">
+        <h1 className="text-2xl font-bold mb-4">Không tìm thấy sản phẩm</h1>
+        <Link to="/products" className="btn btn-primary">
+          Quay lại danh sách sản phẩm
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div>
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="w-full h-auto object-cover rounded-lg shadow-lg"
-          />
+    <div className="py-8">
+      {/* Breadcrumb */}
+      <div className="text-sm breadcrumbs mb-8">
+        <ul>
+          <li><Link to="/">Trang chủ</Link></li>
+          <li><Link to="/products">Sản phẩm</Link></li>
+          <li>{product.name}</li>
+        </ul>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        {/* Product Images */}
+        <div className="space-y-4">
+          <div className="aspect-square rounded-lg overflow-hidden bg-white">
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              className="w-full h-full object-contain product-image"
+            />
+          </div>
         </div>
+
+        {/* Product Info */}
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold">{product.name}</h1>
           <div>
-            {product.promotePrice ? (
-              <div className="space-y-2">
-                <span className="text-3xl font-bold text-primary">
-                  {product.promotePrice.toLocaleString()}đ
-                </span>
-                <span className="text-xl line-through text-gray-500 ml-4">
-                  {product.price.toLocaleString()}đ
-                </span>
-                {product.discount > 0 && (
-                  <div className="badge badge-secondary">-{product.discount}%</div>
-                )}
+            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+            <div className="mt-4 space-y-2">
+              {product.promotePrice ? (
+                <>
+                  <p className="text-2xl text-primary font-bold">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.promotePrice)}
+                  </p>
+                  <p className="text-lg text-gray-500 line-through">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-2xl text-primary font-bold">
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Add to Cart */}
+          <div className="card bg-base-100 shadow-sm">
+            <div className="card-body">
+              <AddToCart product={product} />
+            </div>
+          </div>
+
+          {/* Product Info */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-gray-600">Mã sản phẩm:</span>
+                <span className="ml-2 font-medium">{product.productCode}</span>
               </div>
-            ) : (
-              <span className="text-3xl font-bold">
-                {product.price.toLocaleString()}đ
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center">
-              <button 
-                className="btn btn-square"
-                onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-              >
-                -
-              </button>
-              <span className="mx-4 text-xl">{quantity}</span>
-              <button 
-                className="btn btn-square"
-                onClick={() => setQuantity(prev => prev + 1)}
-              >
-                +
-              </button>
-            </div>
-            <button 
-              className="btn btn-primary flex-1"
-              onClick={handleAddToCart}
-            >
-              Thêm vào giỏ
-            </button>
-          </div>
-          <div className="divider"></div>
-          <div>
-            <h2 className="text-xl font-bold mb-4">Thông tin sản phẩm</h2>
-            <div className="space-y-2">
-              <p><span className="font-semibold">Mã sản phẩm:</span> {product.productCode}</p>
-              <p><span className="font-semibold">Thương hiệu:</span> {product.brand?.name}</p>
-              <p><span className="font-semibold">Danh mục:</span> {product.categories?.map(cat => cat.name).join(', ')}</p>
-              <p><span className="font-semibold">Số lượng còn:</span> {product.availableStock}</p>
-              <p><span className="font-semibold">Đã bán:</span> {product.sold}</p>
+              <div>
+                <span className="text-gray-600">Thương hiệu:</span>
+                <span className="ml-2 font-medium">{product.brand?.name}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Danh mục:</span>
+                <span className="ml-2 font-medium">
+                  {product.categories?.map(cat => cat.name).join(', ')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-600">Số lượng còn:</span>
+                <span className="ml-2 font-medium">{product.importQuantity}</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Đã bán:</span>
+                <span className="ml-2 font-medium">{product.sold}</span>
+              </div>
             </div>
           </div>
-          {product.description && (
-            <div>
-              <h2 className="text-xl font-bold mb-4">Mô tả sản phẩm</h2>
-              <p className="text-gray-600">{product.description}</p>
+
+          {/* Product Description */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Mô tả sản phẩm</h2>
+            <div className="prose max-w-none">
+              <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
             </div>
-          )}
+          </div>
+        </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="card bg-base-100 shadow-sm">
+        <div className="card-body">
+          <ProductReviews productId={id} />
         </div>
       </div>
     </div>
