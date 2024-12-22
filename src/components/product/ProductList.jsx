@@ -1,15 +1,8 @@
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchProducts } from '../../store/slices/productSlice';
+import { useSelector } from 'react-redux';
 import ProductCard from './ProductCard';
 
 function ProductList() {
-  const dispatch = useDispatch();
   const { items, isLoading, error } = useSelector((state) => state.products);
-
-  useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
 
   if (isLoading) {
     return (

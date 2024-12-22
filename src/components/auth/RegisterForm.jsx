@@ -14,11 +14,6 @@ const schema = yup.object({
   confirmPassword: yup.string()
     .oneOf([yup.ref('password')], 'Mật khẩu không khớp')
     .required('Vui lòng xác nhận mật khẩu'),
-  phone: yup.string()
-    .matches(/^[0-9]+$/, 'Số điện thoại không hợp lệ')
-    .min(10, 'Số điện thoại không hợp lệ')
-    .max(11, 'Số điện thoại không hợp lệ')
-    .required('Vui lòng nhập số điện thoại')
 }).required();
 
 function RegisterForm() {
@@ -30,7 +25,13 @@ function RegisterForm() {
   const { isLoading, error } = useSelector((state) => state.auth);
 
   const onSubmit = async (data) => {
-    const result = await dispatch(registerUser(data));
+    const registerData = {
+      ...data,
+      created: new Date().toISOString()
+    };
+    delete registerData.confirmPassword;
+    
+    const result = await dispatch(registerUser(registerData));
     if (!result.error) {
       navigate('/login');
     }
@@ -63,20 +64,6 @@ function RegisterForm() {
         />
         {errors.email && (
           <span className="text-error text-sm">{errors.email.message}</span>
-        )}
-      </div>
-
-      <div>
-        <label className="label">
-          <span className="label-text">Số điện thoại</span>
-        </label>
-        <input
-          type="tel"
-          {...register('phone')}
-          className="input input-bordered w-full"
-        />
-        {errors.phone && (
-          <span className="text-error text-sm">{errors.phone.message}</span>
         )}
       </div>
 
