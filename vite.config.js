@@ -13,7 +13,7 @@ export default defineConfig({
       },
       "/query": {
         target:
-          "https://93e3-2402-800-61cd-5f7d-dce8-b085-5c46-4d74.ngrok-free.app",
+          "https://9ae9-2402-800-61cd-5f7d-78b6-e1fa-400e-22f0.ngrok-free.app",
         changeOrigin: true,
         secure: false,
       },

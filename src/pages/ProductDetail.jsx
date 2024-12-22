@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
 import productApi from '../api/productApi';
 
 function ProductDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,6 +21,7 @@ function ProductDetail() {
         setProduct(response.data);
       } catch (err) {
         setError('Không thể tải thông tin sản phẩm. Vui lòng thử lại sau.');
+        console.error('Error fetching product:', err);
       } finally {
         setLoading(false);
       }
@@ -27,8 +30,22 @@ function ProductDetail() {
     fetchProduct();
   }, [id]);
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({ productId: product.productId, quantity }));
+  const handleAddToCart = async () => {
+    if (!user) {
+      // Nếu chưa đăng nhập, chuyển hướng đến trang đăng nhập
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await dispatch(addToCart({ productId: product.productId, quantity })).unwrap();
+      // Hiển thị thông báo thành công
+      alert('Đã thêm sản phẩm vào giỏ hàng');
+    } catch (err) {
+      // Hiển thị thông báo lỗi
+      alert('Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.');
+      console.error('Error adding to cart:', err);
+    }
   };
 
   if (loading) {
