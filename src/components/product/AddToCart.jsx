@@ -1,10 +1,14 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { addToCart } from '../../store/slices/cartSlice';
 import Toast from '../common/Toast';
+import cartApi from '../../api/cartApi';
 
 function AddToCart({ product }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
   const [toast, setToast] = useState(null);
@@ -16,23 +20,27 @@ function AddToCart({ product }) {
   };
 
   const handleAddToCart = async () => {
+    if (!user) {
+      setToast({
+        type: 'warning',
+        message: 'Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng'
+      });
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
+      return;
+    }
+
     try {
       setIsAdding(true);
       
-      // Thêm animation cho icon giỏ hàng
-      const cartIcon = document.querySelector('.cart-icon');
-      if (cartIcon) {
-        cartIcon.classList.add('animate-bounce');
-        setTimeout(() => {
-          cartIcon.classList.remove('animate-bounce');
-        }, 1000);
-      }
-
+      const response = await cartApi.addToCart(product.productId, quantity);
+      
       dispatch(addToCart({
-        id: product.id,
+        id: product.productId,
         name: product.name,
         price: product.price,
-        image: product.images[0],
+        image: product.imageUrl,
         quantity
       }));
 
@@ -41,7 +49,6 @@ function AddToCart({ product }) {
         message: 'Đã thêm sản phẩm vào giỏ hàng'
       });
       
-      // Reset quantity về 1 sau khi thêm thành công
       setQuantity(1);
     } catch (error) {
       setToast({

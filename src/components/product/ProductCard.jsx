@@ -1,21 +1,55 @@
 import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../../store/slices/cartSlice';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
+import { useState } from 'react';
+import cartApi from '../../api/cartApi';
+import Toast from '../common/Toast';
 
 function ProductCard({ product }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const [toast, setToast] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async (e) => {
+    e.preventDefault(); // Ngăn chặn chuyển trang khi click vào nút thêm giỏ hàng
+    
     if (!user) {
-      toast.warning('Vui lòng đăng nhập để mua hàng');
+      setToast({
+        type: 'warning',
+        message: 'Vui lòng đăng nhập để mua hàng'
+      });
+      setTimeout(() => navigate('/login'), 2000);
       return;
     }
-    dispatch(addToCart({ productId: product.productId, quantity: 1 }));
-    toast.success('Đã thêm sản phẩm vào giỏ hàng');
+
+    try {
+      setIsAdding(true);
+      const response = await cartApi.addToCart(product.productId, 1);
+      dispatch(addToCart({
+        id: product.productId,
+        name: product.name,
+        price: product.price,
+        image: product.imageUrl,
+        quantity: 1
+      }));
+      setToast({
+        type: 'success',
+        message: 'Đã thêm sản phẩm vào giỏ hàng'
+      });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      setToast({
+        type: 'error',
+        message: 'Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.'
+      });
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const calculateDiscount = (original, discounted) => {
@@ -41,7 +75,7 @@ function ProductCard({ product }) {
               -{discountPercent}%
             </div>
           )}
-          {product.availableStock === 0 && (
+          {product.stockQuantity === 0 && (
             <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
               <span className="text-white text-lg font-bold">Hết hàng</span>
             </div>
@@ -74,7 +108,7 @@ function ProductCard({ product }) {
             <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
               <div className="flex items-center gap-1">
                 <i className="fas fa-box"></i>
-                <span>{product.availableStock} có sẵn</span>
+                <span>{product.stockQuantity} có sẵn</span>
               </div>
               <div className="flex items-center gap-1">
                 <i className="fas fa-shopping-cart"></i>
@@ -84,21 +118,34 @@ function ProductCard({ product }) {
           </div>
 
           <motion.button 
-            className={`btn mt-4 w-full ${product.availableStock === 0 ? 'btn-disabled' : 'btn-primary'}`}
+            className={`btn mt-4 w-full ${product.stockQuantity === 0 ? 'btn-disabled' : 'btn-primary'}`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={(e) => {
-              e.preventDefault();
-              if (product.availableStock > 0) {
-                handleAddToCart();
-              }
-            }}
+            onClick={handleAddToCart}
+            disabled={isAdding || product.stockQuantity === 0}
           >
-            <i className="fas fa-cart-plus mr-2"></i>
-            {product.availableStock === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
+            {isAdding ? (
+              <>
+                <span className="loading loading-spinner"></span>
+                <span className="ml-2">Đang thêm...</span>
+              </>
+            ) : (
+              <>
+                <i className="fas fa-cart-plus mr-2"></i>
+                {product.stockQuantity === 0 ? 'Hết hàng' : 'Thêm vào giỏ'}
+              </>
+            )}
           </motion.button>
         </div>
       </motion.div>
+
+      {toast && (
+        <Toast
+          type={toast.type}
+          message={toast.message}
+          onClose={() => setToast(null)}
+        />
+      )}
     </Link>
   );
 }
