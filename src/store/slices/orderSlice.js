@@ -4,8 +4,8 @@ import orderApi from "../../api/orderApi";
 // Async thunk để tạo đơn hàng mới
 export const createOrder = createAsyncThunk(
   "orders/createOrder",
-  async ({ cartId, paymentMethod }) => {
-    const response = await orderApi.create(cartId, paymentMethod);
+  async (orderData) => {
+    const response = await orderApi.create(orderData);
     return response.data;
   }
 );
@@ -23,22 +23,7 @@ export const fetchUserOrders = createAsyncThunk(
 export const fetchOrderById = createAsyncThunk(
   "orders/fetchOrderById",
   async (orderId) => {
-    const [orderResponse, detailsResponse] = await Promise.all([
-      orderApi.getOrderById(orderId),
-      orderApi.getOrderDetails(orderId),
-    ]);
-    return {
-      ...orderResponse.data,
-      details: detailsResponse.data,
-    };
-  }
-);
-
-// Async thunk để hủy đơn hàng
-export const cancelOrder = createAsyncThunk(
-  "orders/cancelOrder",
-  async (orderId) => {
-    const response = await orderApi.cancelOrder(orderId);
+    const response = await orderApi.getOrderById(orderId);
     return response.data;
   }
 );
@@ -97,16 +82,6 @@ const orderSlice = createSlice({
       .addCase(fetchOrderById.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message;
-      })
-      // Cancel order
-      .addCase(cancelOrder.fulfilled, (state, action) => {
-        const updatedOrder = action.payload;
-        state.items = state.items.map((order) =>
-          order.id === updatedOrder.id ? updatedOrder : order
-        );
-        if (state.currentOrder?.id === updatedOrder.id) {
-          state.currentOrder = updatedOrder;
-        }
       });
   },
 });

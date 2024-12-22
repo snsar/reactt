@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 function Cart() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items } = useSelector((state) => state.cart);
+  const { items, totalAmount } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -20,13 +20,14 @@ function Cart() {
     note: ''
   });
 
-  const handleQuantityChange = (id, newQuantity, maxQuantity) => {
+  const handleQuantityChange = (id, newQuantity, stockQuantity) => {
     if (newQuantity < 1) return;
-    if (maxQuantity && newQuantity > maxQuantity) {
-      toast.warning(`Chỉ còn ${maxQuantity} sản phẩm trong kho`);
-      newQuantity = maxQuantity;
+    if (newQuantity > stockQuantity) {
+      toast.warning(`Chỉ còn ${stockQuantity} sản phẩm trong kho`);
+      return;
     }
     dispatch(updateQuantity({ id, quantity: newQuantity }));
+    toast.success('Đã cập nhật số lượng');
   };
 
   const handleRemoveItem = (id) => {
@@ -45,7 +46,7 @@ function Cart() {
 
   const calculateShippingFee = () => {
     const subtotal = calculateSubtotal();
-    return subtotal >= 1000000 ? 0 : 30000; // Miễn phí ship cho đơn hàng trên 1 triệu
+    return subtotal >= 1000000 ? 0 : 30000;
   };
 
   const calculateTotal = () => {
@@ -53,23 +54,29 @@ function Cart() {
   };
 
   const handleShippingInfoChange = (e) => {
-    setShippingInfo({
-      ...shippingInfo,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setShippingInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const validateForm = () => {
+    const errors = {};
     if (!shippingInfo.fullName.trim()) {
-      toast.error('Vui lòng nhập họ tên');
-      return false;
+      errors.fullName = 'Vui lòng nhập họ tên';
     }
     if (!shippingInfo.phone.trim()) {
-      toast.error('Vui lòng nhập số điện thoại');
-      return false;
+      errors.phone = 'Vui lòng nhập số điện thoại';
+    } else if (!/^[0-9]{10}$/.test(shippingInfo.phone.trim())) {
+      errors.phone = 'S��� điện thoại không hợp lệ';
     }
     if (!shippingInfo.address.trim()) {
-      toast.error('Vui lòng nhập địa chỉ giao hàng');
+      errors.address = 'Vui lòng nhập địa chỉ giao hàng';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      Object.values(errors).forEach(error => toast.error(error));
       return false;
     }
     return true;
@@ -78,6 +85,12 @@ function Cart() {
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    if (!user) {
+      toast.warning('Vui lòng đăng nhập để đặt hàng');
+      navigate('/login');
+      return;
+    }
 
     try {
       setIsCheckingOut(true);
@@ -97,13 +110,16 @@ function Cart() {
 
       const result = await dispatch(createOrder(orderData)).unwrap();
       
-      if (paymentMethod === 'VNPAY') {
-        // Redirect to VNPay payment URL
-        window.location.href = result.paymentUrl;
+      if (result.success) {
+        if (paymentMethod === 'VNPAY' && result.paymentUrl) {
+          window.location.href = result.paymentUrl;
+        } else {
+          dispatch(clearCart());
+          navigate(`/orders/${result.orderId}`);
+          toast.success('Đặt hàng thành công!');
+        }
       } else {
-        dispatch(clearCart());
-        navigate(`/orders/${result.orderId}`);
-        toast.success('Đặt hàng thành công!');
+        toast.error(result.message || 'Đặt hàng thất bại');
       }
     } catch (error) {
       console.error('Checkout failed:', error);
@@ -145,6 +161,7 @@ function Cart() {
                   key={item.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
                   className="flex items-center space-x-4 py-4 border-b last:border-0"
                 >
                   <Link to={`/products/${item.id}`} className="shrink-0">
@@ -176,38 +193,32 @@ function Cart() {
                     </div>
                     <div className="flex items-center space-x-2 mt-2">
                       <button
-                        className="btn btn-sm btn-square btn-outline"
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.maxQuantity)}
+                        className="btn btn-sm btn-square"
+                        onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.stockQuantity)}
+                        disabled={isCheckingOut}
                       >
-                        <i className="fas fa-minus"></i>
+                        -
                       </button>
-                      <input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value), item.maxQuantity)}
-                        className="input input-bordered input-sm w-16 text-center"
-                        min="1"
-                        max={item.maxQuantity}
-                      />
+                      <span className="w-8 text-center">{item.quantity}</span>
                       <button
-                        className="btn btn-sm btn-square btn-outline"
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.maxQuantity)}
+                        className="btn btn-sm btn-square"
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.stockQuantity)}
+                        disabled={isCheckingOut}
                       >
-                        <i className="fas fa-plus"></i>
+                        +
                       </button>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-medium">
                       {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                        item.discount > 0 
-                          ? item.price * (1 - item.discount/100) * item.quantity
-                          : item.price * item.quantity
+                        item.price * item.quantity * (1 - item.discount/100)
                       )}
                     </p>
                     <button
-                      className="btn btn-ghost btn-sm text-error mt-2"
+                      className="text-red-500 hover:text-red-700"
                       onClick={() => handleRemoveItem(item.id)}
+                      disabled={isCheckingOut}
                     >
                       <i className="fas fa-trash-alt mr-1"></i>
                       Xóa
@@ -276,6 +287,7 @@ function Cart() {
                   onChange={handleShippingInfoChange}
                   className="input input-bordered w-full"
                   placeholder="Nhập họ và tên người nhận"
+                  disabled={isCheckingOut}
                 />
               </div>
               
@@ -291,6 +303,7 @@ function Cart() {
                   onChange={handleShippingInfoChange}
                   className="input input-bordered w-full"
                   placeholder="Nhập số điện thoại liên hệ"
+                  disabled={isCheckingOut}
                 />
               </div>
               
@@ -306,6 +319,7 @@ function Cart() {
                   className="textarea textarea-bordered w-full"
                   rows="2"
                   placeholder="Nhập địa chỉ giao hàng chi tiết"
+                  disabled={isCheckingOut}
                 />
               </div>
               
@@ -320,6 +334,7 @@ function Cart() {
                   className="textarea textarea-bordered w-full"
                   rows="2"
                   placeholder="Ghi chú thêm về đơn hàng (nếu có)"
+                  disabled={isCheckingOut}
                 />
               </div>
 
@@ -336,6 +351,7 @@ function Cart() {
                       checked={paymentMethod === 'COD'}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       className="radio radio-primary"
+                      disabled={isCheckingOut}
                     />
                     <span>Thanh toán khi nhận hàng (COD)</span>
                   </label>
@@ -347,6 +363,7 @@ function Cart() {
                       checked={paymentMethod === 'VNPAY'}
                       onChange={(e) => setPaymentMethod(e.target.value)}
                       className="radio radio-primary"
+                      disabled={isCheckingOut}
                     />
                     <span>Thanh toán qua VNPAY</span>
                   </label>
@@ -361,7 +378,7 @@ function Cart() {
                 {isCheckingOut ? (
                   <>
                     <span className="loading loading-spinner"></span>
-                    Đang xử lý...
+                    <span className="ml-2">Đang xử lý...</span>
                   </>
                 ) : (
                   <>

@@ -1,24 +1,27 @@
 import axiosClient from "./axiosClient";
 
 const cartApi = {
-  getCart: () => {
-    return axiosClient.get("/public/cart");
+  viewCart: () => {
+    return axiosClient.get("/public/view-cart");
   },
 
-  addItem: (productId, quantity) => {
-    return axiosClient.post("/public/cart/add", { productId, quantity });
+  addToCart: (productId, quantity) => {
+    return axiosClient.post(`/public/add-product-to-cart/${productId}`, null, {
+      params: { quantity },
+    });
   },
 
-  updateQuantity: (productId, quantity) => {
-    return axiosClient.put("/public/cart/update", { productId, quantity });
+  updateQuantity: (cartItemData) => {
+    return axiosClient.put(
+      "/public/carts/update-product-quantity",
+      cartItemData
+    );
   },
 
-  removeItem: (productId) => {
-    return axiosClient.delete(`/public/cart/remove/${productId}`);
-  },
-
-  clearCart: () => {
-    return axiosClient.delete("/public/cart/clear");
+  deleteCartItem: (cartId, productId) => {
+    return axiosClient.delete(
+      `/public/carts/delete-cart-item/${cartId}/${productId}`
+    );
   },
 };
 

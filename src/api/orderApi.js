@@ -1,8 +1,8 @@
 import axiosClient from "./axiosClient";
 
 const orderApi = {
-  create: (cartId, paymentMethod) => {
-    return axiosClient.post(`/public/order-product/${cartId}/${paymentMethod}`);
+  create: (orderData) => {
+    return axiosClient.post("/public/orders", orderData);
   },
 
   getUserOrders: () => {
