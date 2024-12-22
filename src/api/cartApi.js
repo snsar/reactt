@@ -6,9 +6,9 @@ const cartApi = {
   },
 
   addToCart: (productId, quantity) => {
-    return axiosClient.post(`/public/add-product-to-cart/${productId}`, null, {
-      params: { quantity },
-    });
+    return axiosClient.post(
+      `/public/add-product-to-cart/${productId}?quantity=${quantity}`
+    );
   },
 
   updateQuantity: (cartItemData) => {

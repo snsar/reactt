@@ -11,14 +11,14 @@ import Toast from '../common/Toast';
 function ProductCard({ product }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const [toast, setToast] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddToCart = async (e) => {
     e.preventDefault(); // Ngăn chặn chuyển trang khi click vào nút thêm giỏ hàng
     
-    if (!user) {
+    if (!token) {
       setToast({
         type: 'warning',
         message: 'Vui lòng đăng nhập để mua hàng'
@@ -30,22 +30,35 @@ function ProductCard({ product }) {
     try {
       setIsAdding(true);
       const response = await cartApi.addToCart(product.productId, 1);
-      dispatch(addToCart({
-        id: product.productId,
-        name: product.name,
-        price: product.price,
-        image: product.imageUrl,
-        quantity: 1
-      }));
-      setToast({
-        type: 'success',
-        message: 'Đã thêm sản phẩm vào giỏ hàng'
-      });
+      if (response.data) {
+        dispatch(addToCart({
+          id: product.productId,
+          name: product.name,
+          price: product.price,
+          image: product.imageUrl,
+          quantity: 1,
+          stockQuantity: product.stockQuantity,
+          discount: product.discount || 0
+        }));
+        setToast({
+          type: 'success',
+          message: 'Đã thêm sản phẩm vào giỏ hàng'
+        });
+      }
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      let errorMessage = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.';
+      if (error.response) {
+        if (error.response.status === 401) {
+          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          setTimeout(() => navigate('/login'), 2000);
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      }
       setToast({
         type: 'error',
-        message: 'Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.'
+        message: errorMessage
       });
     } finally {
       setIsAdding(false);
