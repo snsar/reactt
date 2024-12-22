@@ -2,6 +2,13 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { fetchProducts } from '../store/slices/productSlice';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, Navigation, EffectFade } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/effect-fade';
+import { motion } from 'framer-motion';
 import ProductCard from '../components/product/ProductCard';
 
 function Home() {
@@ -12,34 +19,111 @@ function Home() {
     dispatch(fetchProducts());
   }, [dispatch]);
 
+  const heroSlides = [
+    {
+      image: 'https://images.unsplash.com/photo-1593642702821-c8da6771f0c6',
+      title: 'Công nghệ hiện đại',
+      description: 'Khám phá các sản phẩm công nghệ mới nhất với chất lượng tốt nhất'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661',
+      title: 'Thiết bị thông minh',
+      description: 'Trải nghiệm cuộc sống thông minh với các thiết bị hiện đại'
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c',
+      title: 'Giải pháp số',
+      description: 'Tìm kiếm giải pháp công nghệ phù hợp cho nhu cầu của bạn'
+    }
+  ];
+
   return (
     <div>
-      {/* Hero Section */}
-      <section className="hero min-h-[70vh]" style={{backgroundImage: 'url(https://daisyui.com/images/stock/photo-1507358522600-9f71e620c44e.jpg)'}}>
-        <div className="hero-overlay bg-opacity-60"></div>
-        <div className="hero-content text-center text-neutral-content">
-          <div className="max-w-md">
-            <h1 className="mb-5 text-5xl font-bold">Chào mừng đến với SHOP</h1>
-            <p className="mb-5">Khám phá bộ sưu tập sản phẩm đa dạng với chất lượng tốt nhất và giá cả hợp lý.</p>
-            <Link to="/products" className="btn btn-primary">Mua sắm ngay</Link>
-          </div>
-        </div>
+      {/* Hero Section with Swiper */}
+      <section className="min-h-[70vh]">
+        <Swiper
+          modules={[Autoplay, Pagination, Navigation, EffectFade]}
+          effect="fade"
+          pagination={{ clickable: true }}
+          navigation
+          autoplay={{ delay: 5000 }}
+          className="h-[70vh]"
+        >
+          {heroSlides.map((slide, index) => (
+            <SwiperSlide key={index}>
+              <div 
+                className="hero min-h-[70vh]" 
+                style={{
+                  backgroundImage: `url(${slide.image})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center'
+                }}
+              >
+                <div className="hero-overlay bg-opacity-60"></div>
+                <div className="hero-content text-center text-neutral-content">
+                  <motion.div 
+                    className="max-w-md"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                  >
+                    <h1 className="mb-5 text-5xl font-bold">{slide.title}</h1>
+                    <p className="mb-5">{slide.description}</p>
+                    <Link to="/products" className="btn btn-primary">Mua sắm ngay</Link>
+                  </motion.div>
+                </div>
+              </div>
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-16">
+      <section className="py-16 bg-base-200">
         <div className="container mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">Sản phẩm nổi bật</h2>
+          <motion.h2 
+            className="text-3xl font-bold text-center mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            Sản phẩm nổi bật
+          </motion.h2>
           {isLoading ? (
             <div className="flex justify-center">
               <span className="loading loading-spinner loading-lg"></span>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Swiper
+              modules={[Pagination, Navigation]}
+              spaceBetween={30}
+              slidesPerView={1}
+              navigation
+              pagination={{ clickable: true }}
+              breakpoints={{
+                640: {
+                  slidesPerView: 2,
+                },
+                1024: {
+                  slidesPerView: 3,
+                }
+              }}
+              className="pb-12"
+            >
               {items.slice(0, 6).map((product) => (
-                <ProductCard key={product.productId} product={product} />
+                <SwiperSlide key={product.productId}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ProductCard product={product} />
+                  </motion.div>
+                </SwiperSlide>
               ))}
-            </div>
+            </Swiper>
           )}
           <div className="text-center mt-8">
             <Link to="/products" className="btn btn-outline btn-primary">
@@ -50,36 +134,55 @@ function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="bg-base-200 py-16">
+      <section className="py-16">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="card bg-base-100">
+            <motion.div 
+              className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+            >
               <div className="card-body items-center text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                </svg>
+                <div className="text-primary text-5xl mb-4">
+                  <i className="fas fa-shield-alt"></i>
+                </div>
                 <h3 className="card-title">Chất lượng đảm bảo</h3>
-                <p>Cam kết chất lượng sản phẩm chính hãng</p>
+                <p>Cam kết chính hãng 100% với đầy đủ phụ kiện và bảo hành</p>
               </div>
-            </div>
-            <div className="card bg-base-100">
+            </motion.div>
+            
+            <motion.div 
+              className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
               <div className="card-body items-center text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <div className="text-primary text-5xl mb-4">
+                  <i className="fas fa-truck"></i>
+                </div>
                 <h3 className="card-title">Giao hàng nhanh chóng</h3>
-                <p>Giao hàng trong vòng 24h</p>
+                <p>Giao hàng trong vòng 24h với đơn hàng nội thành</p>
               </div>
-            </div>
-            <div className="card bg-base-100">
+            </motion.div>
+            
+            <motion.div 
+              className="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow duration-300"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.4 }}
+            >
               <div className="card-body items-center text-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
+                <div className="text-primary text-5xl mb-4">
+                  <i className="fas fa-sync"></i>
+                </div>
                 <h3 className="card-title">Đổi trả miễn phí</h3>
-                <p>Đổi trả trong vòng 7 ngày</p>
+                <p>Đổi trả sản phẩm trong vòng 7 ngày nếu có lỗi từ nhà sản xuất</p>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
