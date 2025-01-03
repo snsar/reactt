@@ -29,7 +29,7 @@ export default defineConfig({
       },
       "/query": {
         target:
-          "https://9ae9-2402-800-61cd-5f7d-78b6-e1fa-400e-22f0.ngrok-free.app",
+          "https://2a64-2402-800-61cd-2cde-e0f0-651f-6c4b-751f.ngrok-free.app",
         changeOrigin: true,
         secure: false,
       },
