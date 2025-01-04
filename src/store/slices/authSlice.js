@@ -25,6 +25,23 @@ export const register = createAsyncThunk(
   }
 );
 
+export const checkAuth = createAsyncThunk(
+  "auth/checkAuth",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        return rejectWithValue("No token found");
+      }
+      const response = await authApi.checkAuth();
+      return response.data;
+    } catch (error) {
+      localStorage.removeItem("token");
+      return rejectWithValue(error.response?.data || "Authentication failed");
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -32,12 +49,17 @@ const authSlice = createSlice({
     token: localStorage.getItem("token"),
     isLoading: false,
     error: null,
+    isAuthenticated: false,
   },
   reducers: {
     logout: (state) => {
       state.user = null;
       state.token = null;
+      state.isAuthenticated = false;
       localStorage.removeItem("token");
+    },
+    clearError: (state) => {
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
@@ -52,27 +74,34 @@ const authSlice = createSlice({
           username: action.payload.username,
           email: action.payload.email,
           roles: action.payload.roles,
+          avatar: action.payload.avatar,
         };
         state.token = action.payload.token;
+        state.isAuthenticated = true;
         localStorage.setItem("token", action.payload.token);
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload?.message || "Đăng nhập thất bại";
+        state.isAuthenticated = false;
       })
-      .addCase(register.pending, (state) => {
+      .addCase(checkAuth.pending, (state) => {
         state.isLoading = true;
-        state.error = null;
       })
-      .addCase(register.fulfilled, (state) => {
+      .addCase(checkAuth.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
       })
-      .addCase(register.rejected, (state, action) => {
+      .addCase(checkAuth.rejected, (state) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        localStorage.removeItem("token");
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

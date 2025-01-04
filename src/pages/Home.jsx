@@ -80,8 +80,8 @@ function Home() {
         >
           {heroSlides.map((slide, index) => (
             <SwiperSlide key={index}>
-              <div 
-                className="hero min-h-[70vh]" 
+              <div
+                className="hero min-h-[70vh]"
                 style={{
                   backgroundImage: `url(${slide.image})`,
                   backgroundSize: 'cover',
@@ -90,7 +90,7 @@ function Home() {
               >
                 <div className="hero-overlay bg-opacity-60"></div>
                 <div className="hero-content text-center text-neutral-content">
-                  <motion.div 
+                  <motion.div
                     className="max-w-md"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -117,10 +117,10 @@ function Home() {
             <div className="w-full md:w-1/2">
               <div className="form-control">
                 <div className="input-group">
-                  <input 
-                    type="text" 
-                    placeholder="Tìm kiếm sản phẩm..." 
-                    className="input input-bordered w-full" 
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm sản phẩm..."
+                    className="input input-bordered w-full"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -133,12 +133,12 @@ function Home() {
             <div className="w-full md:w-1/2">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium">Giá:</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100000000" 
-                  value={priceRange[1]} 
-                  className="range range-primary" 
+                <input
+                  type="range"
+                  min="0"
+                  max="100000000"
+                  value={priceRange[1]}
+                  className="range range-primary"
                   step="1000000"
                   onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
                 />
@@ -148,7 +148,7 @@ function Home() {
               </div>
             </div>
           </div>
-          
+
           {/* Hiển thị số lượng sản phẩm tìm thấy */}
           {searchTerm && (
             <div className="mt-4 text-center">
@@ -163,7 +163,7 @@ function Home() {
       {/* Categories Section */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <motion.h2 
+          <motion.h2
             className="text-3xl font-bold text-center mb-8"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -190,9 +190,9 @@ function Home() {
                     <div className="flex flex-col items-center p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300">
                       <div className="w-16 h-16 rounded-full bg-primary text-white flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
                         {category.imageUrl ? (
-                          <img 
-                            src={category.imageUrl} 
-                            alt={category.name} 
+                          <img
+                            src={category.imageUrl}
+                            alt={category.name}
                             className="w-10 h-10 object-contain"
                           />
                         ) : (
@@ -219,7 +219,7 @@ function Home() {
       {/* New Products Section */}
       <section className="py-12 bg-base-200">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-8"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -228,7 +228,7 @@ function Home() {
             <h2 className="text-3xl font-bold mb-4">Sản phẩm mới nhất</h2>
             <p className="text-gray-600">Khám phá những sản phẩm mới nhất của chúng tôi</p>
           </motion.div>
-          
+
           {isLoading ? (
             <div className="flex justify-center">
               <span className="loading loading-spinner loading-lg"></span>
@@ -255,7 +255,7 @@ function Home() {
       {/* Discounted Products Section */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="text-center mb-8"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -264,7 +264,7 @@ function Home() {
             <h2 className="text-3xl font-bold mb-4">Sản phẩm giảm giá</h2>
             <p className="text-gray-600">Không thể bỏ lỡ những ưu đãi hấp dẫn</p>
           </motion.div>
-          
+
           {isLoading ? (
             <div className="flex justify-center">
               <span className="loading loading-spinner loading-lg"></span>
@@ -293,8 +293,8 @@ function Home() {
 
           {/* Xem thêm button */}
           <div className="text-center mt-8">
-            <Link 
-              to="/products?discount=true" 
+            <Link
+              to="/products?discount=true"
               className="btn btn-outline btn-primary"
             >
               <i className="fas fa-tag mr-2"></i>
@@ -308,7 +308,7 @@ function Home() {
       <section className="py-16 bg-base-200">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div 
+            <motion.div
               className="card bg-white shadow-xl hover:shadow-2xl transition-all duration-300"
               initial={{ opacity: 0, x: -50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -322,8 +322,8 @@ function Home() {
                 <p className="text-gray-600">Cam kết chính hãng 100% với đầy đủ phụ kiện và bảo hành</p>
               </div>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               className="card bg-white shadow-xl hover:shadow-2xl transition-all duration-300"
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -339,7 +339,7 @@ function Home() {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               className="card bg-white shadow-xl hover:shadow-2xl transition-all duration-300"
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -361,7 +361,7 @@ function Home() {
       {/* Newsletter Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             className="max-w-3xl mx-auto text-center"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -372,10 +372,10 @@ function Home() {
               Đăng ký để nhận thông tin về sản phẩm mới và khuyến mãi hấp dẫn
             </p>
             <form className="flex flex-col sm:flex-row gap-4 justify-center">
-              <input 
-                type="email" 
-                placeholder="Nhập email của bạn" 
-                className="input input-bordered w-full max-w-md" 
+              <input
+                type="email"
+                placeholder="Nhập email của bạn"
+                className="input input-bordered w-full max-w-md"
               />
               <button className="btn btn-primary">
                 <i className="fas fa-paper-plane mr-2"></i>
