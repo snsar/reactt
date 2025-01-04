@@ -7,7 +7,7 @@ import productApi from '../../api/productApi';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-function RelatedProducts({ categoryIds, currentProductId }) {
+function RelatedProducts({ categoryIds, currentProductId, limit }) {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -15,24 +15,20 @@ function RelatedProducts({ categoryIds, currentProductId }) {
     const fetchRelatedProducts = async () => {
       try {
         setIsLoading(true);
-        // Gọi API để lấy sản phẩm liên quan dựa trên categoryIds
-        const response = await productApi.getRelated({
-          categoryIds,
-          currentProductId,
-          limit: 6
-        });
-        setProducts(response.data);
+        // Chỉ gọi API khi có categoryIds
+        if (categoryIds && categoryIds.length > 0) {
+          const response = await productApi.getRelatedProducts(categoryIds, currentProductId, limit);
+          setProducts(response);
+        }
       } catch (error) {
-        console.error('Failed to fetch related products:', error);
+        console.error('Error fetching related products:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (categoryIds?.length > 0) {
-      fetchRelatedProducts();
-    }
-  }, [categoryIds, currentProductId]);
+    fetchRelatedProducts();
+  }, [categoryIds, currentProductId, limit]);
 
   if (isLoading) {
     return (
@@ -78,4 +74,4 @@ function RelatedProducts({ categoryIds, currentProductId }) {
   );
 }
 
-export default RelatedProducts; 
+export default RelatedProducts;

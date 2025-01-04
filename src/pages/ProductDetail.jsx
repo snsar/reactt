@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Rating } from 'react-simple-star-rating';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FreeMode, Navigation, Thumbs } from 'swiper/modules';
 import { motion } from 'framer-motion';
 import AddToCart from '../components/product/AddToCart';
 import ProductReviews from '../components/product/ProductReviews';
-import RelatedProducts from '../components/product/RelatedProducts';
 import productApi from '../api/productApi';
 import 'swiper/css';
 import 'swiper/css/free-mode';
@@ -102,7 +100,7 @@ function ProductDetail() {
               </SwiperSlide>
             ))}
           </Swiper>
-          
+
           <Swiper
             onSwiper={setThumbsSwiper}
             spaceBetween={10}
@@ -134,13 +132,8 @@ function ProductDetail() {
           >
             <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
             <div className="flex items-center gap-4 mb-4">
-              <Rating
-                readonly
-                initialValue={product.rating || 0}
-                size={20}
-              />
               <span className="text-gray-500">
-                ({product.reviewCount || 0} đánh giá)
+                Đã bán: {product.sold || 0}
               </span>
             </div>
             <div className="mt-4 space-y-2">
@@ -190,7 +183,7 @@ function ProductDetail() {
               </div>
               <div>
                 <span className="text-gray-600">Thương hiệu:</span>
-                <Link 
+                <Link
                   to={`/products?brand=${product.brand?.id}`}
                   className="ml-2 font-medium hover:text-primary"
                 >
@@ -201,9 +194,9 @@ function ProductDetail() {
                 <span className="text-gray-600">Danh mục:</span>
                 <span className="ml-2">
                   {product.categories?.map((cat, index) => (
-                    <span key={cat.id}>
-                      <Link 
-                        to={`/products?category=${cat.id}`}
+                    <span key={cat.categoryId}>
+                      <Link
+                        to={`/products?category=${cat.categoryId}`}
                         className="font-medium hover:text-primary"
                       >
                         {cat.name}
@@ -226,19 +219,19 @@ function ProductDetail() {
       <div className="card bg-base-100 shadow-sm mb-12">
         <div className="card-body">
           <div className="tabs tabs-boxed">
-            <button 
+            <button
               className={`tab ${selectedTab === 'description' ? 'tab-active' : ''}`}
               onClick={() => setSelectedTab('description')}
             >
               Mô tả sản phẩm
             </button>
-            <button 
+            <button
               className={`tab ${selectedTab === 'specs' ? 'tab-active' : ''}`}
               onClick={() => setSelectedTab('specs')}
             >
               Thông số kỹ thuật
             </button>
-            <button 
+            <button
               className={`tab ${selectedTab === 'reviews' ? 'tab-active' : ''}`}
               onClick={() => setSelectedTab('reviews')}
             >
@@ -269,24 +262,16 @@ function ProductDetail() {
             )}
 
             {selectedTab === 'reviews' && (
-              <ProductReviews productId={id} />
+              <ProductReviews
+                productId={Number(id)}
+                isVisible={selectedTab === 'reviews'}
+              />
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Related Products */}
-      <div className="card bg-base-100 shadow-sm">
-        <div className="card-body">
-          <h2 className="text-xl font-semibold mb-6">Sản phẩm liên quan</h2>
-          <RelatedProducts 
-            categoryIds={product.categories?.map(cat => cat.id)} 
-            currentProductId={product.id}
-          />
         </div>
       </div>
     </div>
   );
 }
 
-export default ProductDetail; 
+export default ProductDetail;

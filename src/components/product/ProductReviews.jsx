@@ -1,233 +1,211 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useSelector } from 'react-redux';
-import { Rating } from 'react-simple-star-rating';
-import productApi from '../../api/productApi';
-import { useNavigate, Link } from 'react-router-dom';
-import Toast from '../common/Toast';
+import { commentApi } from '../../api/commentApi';
+import { toast } from 'react-toastify';
 
-function ProductReviews({ productId }) {
-  const [reviews, setReviews] = useState([]);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [canReview, setCanReview] = useState(false);
-  const [toast, setToast] = useState(null);
-  const { user } = useSelector((state) => state.auth);
-  const navigate = useNavigate();
+const ProductReviews = ({ productId, isVisible }) => {
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [rating, setRating] = useState(5);
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    fetchReviews();
-    if (user) {
-      checkReviewPermission();
+    if (isVisible && !isLoaded) {
+      fetchComments();
+      setIsLoaded(true);
     }
-  }, [productId, user]);
+  }, [isVisible, productId, page]);
 
-  const checkReviewPermission = async () => {
+  const fetchComments = async () => {
     try {
-      const response = await productApi.canReviewProduct(productId);
-      setCanReview(response.data.canReview);
+      const response = await commentApi.getProductComments(productId, page);
+      setComments(response.comments || []);
+      setTotalPages(response.totalPages || 0);
     } catch (error) {
-      console.error('Failed to check review permission:', error);
+      console.error('Error fetching comments:', error);
+      setComments([]);
+      setTotalPages(0);
     }
   };
 
-  const fetchReviews = async () => {
-    try {
-      setIsLoading(true);
-      const response = await productApi.getComments(productId);
-      setReviews(response.data);
-      if (response.data.length > 0) {
-        const avgRating = response.data.reduce((acc, review) => acc + review.rating, 0) / response.data.length;
-        setRating(avgRating);
-      }
-    } catch (error) {
-      console.error('Failed to fetch reviews:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSubmitReview = async (e) => {
+  const handleSubmitComment = async (e) => {
     e.preventDefault();
-    if (!user) {
-      setToast({
-        type: 'warning',
-        message: 'Vui lòng đăng nhập để đánh giá sản phẩm'
-      });
-      setTimeout(() => navigate('/login'), 2000);
+    if (!isAuthenticated) {
+      toast.error('Vui lòng đăng nhập để đánh giá sản phẩm');
       return;
     }
 
-    if (!canReview) {
-      setToast({
-        type: 'warning',
-        message: 'Bạn cần mua sản phẩm này trước khi đánh giá'
-      });
-      return;
-    }
-
-    if (!rating) {
-      setToast({
-        type: 'warning',
-        message: 'Vui lòng chọn số sao đánh giá'
-      });
+    if (newComment.trim().length < 10) {
+      toast.error('Nội dung đánh giá phải có ít nhất 10 ký tự');
       return;
     }
 
     try {
-      setIsSubmitting(true);
-      await productApi.addComment(productId, {
-        rating,
-        content: comment
-      });
-      setComment('');
-      setToast({
-        type: 'success',
-        message: 'Đã gửi đánh giá thành công'
-      });
-      fetchReviews();
-      setCanReview(false);
-    } catch (error) {
-      console.error('Failed to submit review:', error);
-      setToast({
-        type: 'error',
-        message: 'Không thể gửi đánh giá. Vui lòng thử lại sau.'
-      });
-    } finally {
-      setIsSubmitting(false);
+      const commentData = {
+        productId,
+        content: newComment.trim(),
+        rating
+      };
+
+      await commentApi.addComment(commentData);
+      toast.success('Đánh giá sản phẩm thành công');
+      setNewComment('');
+      setRating(5);
+      fetchComments();
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      if (err.response?.data?.message) {
+        toast.error(err.response.data.message);
+      } else {
+        toast.error('Có lỗi xảy ra khi đánh giá');
+      }
     }
   };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      await commentApi.deleteComment(commentId);
+      toast.success('Xóa đánh giá thành công');
+      fetchComments();
+    } catch (error) {
+      toast.error('Có lỗi xảy ra khi xóa đánh giá');
+    }
+  };
+
+  if (!isVisible) return null;
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold mb-6">Đánh giá sản phẩm</h2>
-
-      {/* Overall Rating */}
-      <div className="flex items-center space-x-4 mb-8">
-        <Rating
-          initialValue={rating}
-          size={24}
-          allowFraction
-          readonly
-        />
-        <span className="text-lg">
-          {rating.toFixed(1)} / 5
-        </span>
-        <span className="text-gray-500">
-          ({reviews.length} đánh giá)
-        </span>
-      </div>
-
-      {/* Review Form */}
-      {user ? (
-        canReview ? (
-          <form onSubmit={handleSubmitReview} className="mb-8">
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Đánh giá của bạn
+    <div className="card bg-base-100">
+      <div className="card-body">
+        {/* Form thêm đánh giá mới */}
+        <div className="card bg-base-200 mb-6">
+          <div className="card-body">
+            <h3 className="card-title text-lg mb-4">Viết đánh giá của bạn</h3>
+            <form onSubmit={handleSubmitComment}>
+              <div className="form-control mb-4">
+                <label className="label">
+                  <span className="label-text">Đánh giá sao</span>
                 </label>
-                <Rating
-                  onClick={(rate) => setRating(rate)}
-                  size={24}
-                  allowFraction
-                />
+                <div className="rating rating-lg">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <input
+                      key={star}
+                      type="radio"
+                      name="rating"
+                      className="mask mask-star-2 bg-orange-400"
+                      checked={star === rating}
+                      onChange={() => setRating(star)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Nhận xét
+              <div className="form-control mb-4">
+                <label className="label">
+                  <span className="label-text">Nội dung đánh giá</span>
                 </label>
                 <textarea
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  className="textarea textarea-bordered w-full"
-                  rows="3"
+                  className="textarea textarea-bordered h-24"
                   placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
-                />
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  required
+                  minLength={10}
+                  maxLength={500}
+                ></textarea>
               </div>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="loading loading-spinner loading-sm"></span>
-                    Đang gửi...
-                  </>
-                ) : (
-                  'Gửi đánh giá'
-                )}
+              <button type="submit" className="btn btn-primary">
+                Gửi đánh giá
               </button>
-            </div>
-          </form>
-        ) : (
-          <div className="alert alert-info mb-8">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span>Bạn cần mua sản phẩm này trước khi có thể đánh giá</span>
+            </form>
           </div>
-        )
-      ) : (
-        <div className="alert alert-warning mb-8">
-          <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <span>Vui lòng <Link to="/login" className="font-medium underline">đăng nhập</Link> để đánh giá sản phẩm</span>
         </div>
-      )}
 
-      {/* Reviews List */}
-      <div className="space-y-6">
-        {isLoading ? (
-          <div className="text-center py-8">
-            <span className="loading loading-spinner loading-lg"></span>
-          </div>
-        ) : reviews.length > 0 ? (
-          reviews.map((review) => (
-            <div key={review.id} className="border-b pb-6">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-4">
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral text-neutral-content rounded-full w-8">
-                      <span className="text-xs">{review.user.name[0]}</span>
+        {/* Danh sách đánh giá */}
+        {comments && comments.length > 0 ? (
+          <div className="space-y-4">
+            {comments.map((comment) => (
+              <div key={comment.commentId} className="card bg-base-100 shadow-sm">
+                <div className="card-body">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <div className="avatar placeholder">
+                          <div className="bg-neutral text-neutral-content rounded-full w-8">
+                            <span>{comment.user.userName[0].toUpperCase()}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{comment.user.userName}</h3>
+                          <div className="rating rating-sm">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <input
+                                key={star}
+                                type="radio"
+                                className="mask mask-star-2 bg-orange-400"
+                                checked={star <= comment.rating}
+                                readOnly
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <p className="text-gray-600">{comment.content}</p>
+                        <p className="text-sm text-gray-400 mt-1">
+                          {new Date(comment.createdDate).toLocaleDateString('vi-VN')}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <p className="font-medium">{review.user.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString('vi-VN')}
-                    </p>
+                    {isAuthenticated && user.userName === comment.user.userName && (
+                      <button
+                        onClick={() => handleDeleteComment(comment.commentId)}
+                        className="btn btn-ghost btn-sm text-error"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    )}
                   </div>
                 </div>
-                <Rating
-                  initialValue={review.rating}
-                  size={16}
-                  allowFraction
-                  readonly
-                />
               </div>
-              <p className="text-gray-600">{review.content}</p>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <p className="text-center text-gray-500 py-8">
-            Chưa có đánh giá nào cho sản phẩm này
-          </p>
+          <div className="text-center py-8">
+            <p className="text-gray-500">Chưa có đánh giá nào cho sản phẩm này</p>
+          </div>
+        )}
+
+        {/* Phân trang */}
+        {totalPages > 1 && (
+          <div className="join grid grid-cols-2 w-full max-w-xs mx-auto mt-6">
+            <button
+              className="join-item btn btn-outline"
+              onClick={() => setPage(Math.max(0, page - 1))}
+              disabled={page === 0}
+            >
+              Trang trước
+            </button>
+            <button
+              className="join-item btn btn-outline"
+              onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
+              disabled={page === totalPages - 1}
+            >
+              Trang sau
+            </button>
+          </div>
         )}
       </div>
-
-      {toast && (
-        <Toast
-          type={toast.type}
-          message={toast.message}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
-}
+};
 
-export default ProductReviews; 
+ProductReviews.propTypes = {
+  productId: PropTypes.number.isRequired,
+  isVisible: PropTypes.bool.isRequired
+};
+
+export default ProductReviews;
