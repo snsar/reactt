@@ -1,19 +1,22 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import categoryApi from "../../api/categoryApi";
+import axiosClient from "../../api/axiosClient";
 
-// Tạo async thunk để fetch categories
 export const fetchCategories = createAsyncThunk(
   "categories/fetchCategories",
-  async () => {
-    const response = await categoryApi.getAll();
-    return response.data;
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosClient.get("/public/get-all-categories");
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data || "Có lỗi xảy ra");
+    }
   }
 );
 
 const categorySlice = createSlice({
   name: "categories",
   initialState: {
-    categories: [],
+    items: [],
     isLoading: false,
     error: null,
   },
@@ -26,11 +29,11 @@ const categorySlice = createSlice({
       })
       .addCase(fetchCategories.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.categories = action.payload;
+        state.items = action.payload;
       })
       .addCase(fetchCategories.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message;
+        state.error = action.payload;
       });
   },
 });

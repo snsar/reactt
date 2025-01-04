@@ -19,20 +19,20 @@ const productApi = {
     });
   },
 
-  searchByKeyword: (keyword, params) => {
+  searchByKeyword: (keyword) => {
     return axiosClient.get("/public/products/search-by-keyword", {
-      params: { ...params, keyword },
+      params: { keyword },
     });
   },
 
   getByCategory: (categoryId, params) => {
-    return axiosClient.get(`/public/products/categories/${categoryId}`, {
-      params,
+    return axiosClient.get("/public/products", {
+      params: { ...params, categoryId },
     });
   },
 
-  getDiscounted: (params) => {
-    return axiosClient.get("/public/products/discounted", { params });
+  getDiscounted: () => {
+    return axiosClient.get("/public/products/discounted");
   },
 
   getComments: (productId) => {

@@ -2,7 +2,7 @@ import { useSelector } from 'react-redux';
 import ProductCard from './ProductCard';
 
 function ProductList() {
-  const { items, isLoading, error } = useSelector((state) => state.products);
+  const { items = [], isLoading, error } = useSelector((state) => state.products);
 
   if (isLoading) {
     return (
@@ -16,6 +16,14 @@ function ProductList() {
     return (
       <div className="alert alert-error">
         <span>{error}</span>
+      </div>
+    );
+  }
+
+  if (!items || items.length === 0) {
+    return (
+      <div className="alert alert-info">
+        <span>Không có sản phẩm nào</span>
       </div>
     );
   }

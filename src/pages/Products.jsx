@@ -1,97 +1,85 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { fetchProducts, setPage, setSize } from '../store/slices/productSlice';
 import ProductList from '../components/product/ProductList';
-import { searchProducts, fetchProducts, setPage, setSize } from '../store/slices/productSlice';
+import ProductFilter from '../components/product/ProductFilter';
+import Pagination from '../components/common/Pagination';
 
 function Products() {
-  const [searchTerm, setSearchTerm] = useState('');
   const dispatch = useDispatch();
-  const { page, size, totalPages, isLoading } = useSelector((state) => state.products);
+  const {
+    items,
+    page,
+    size,
+    totalPages,
+    isFirst,
+    isLast,
+    hasNext,
+    hasPrevious,
+    selectedCategory,
+    isLoading,
+    error
+  } = useSelector((state) => state.products);
 
-  useEffect(() => {
-    dispatch(fetchProducts({ page, size }));
-  }, [dispatch, page, size]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchTerm.trim()) {
-      dispatch(searchProducts(searchTerm));
-    } else {
-      dispatch(fetchProducts({ page, size }));
-    }
+  const handleFilterChange = (filters) => {
+    dispatch(setPage(0)); // Reset về trang đầu tiên khi thay đổi bộ lọc
+    dispatch(
+      fetchProducts({
+        page: 0,
+        size,
+        categoryId: filters.categoryId ? parseInt(filters.categoryId) : null,
+        sortBy: filters.sortBy || null,
+        sortDir: filters.sortDir || null,
+        minPrice: filters.minPrice || null,
+        maxPrice: filters.maxPrice || null,
+      })
+    );
   };
 
   const handlePageChange = (newPage) => {
     dispatch(setPage(newPage));
   };
 
-  const handleSizeChange = (e) => {
-    const newSize = parseInt(e.target.value);
+  const handleSizeChange = (newSize) => {
     dispatch(setSize(newSize));
-    dispatch(setPage(0)); // Reset về trang đầu khi thay đổi size
+    dispatch(setPage(0));
   };
 
-  return (
-    <div className="py-8">
-      <div className="mb-8">
-        <form onSubmit={handleSearch} className="flex gap-4 max-w-xl mx-auto">
-          <input
-            type="text"
-            placeholder="Tìm kiếm sản phẩm..."
-            className="input input-bordered flex-1"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button type="submit" className="btn btn-primary">
-            Tìm kiếm
-          </button>
-        </form>
-      </div>
+  useEffect(() => {
+    dispatch(
+      fetchProducts({
+        page,
+        size,
+        categoryId: selectedCategory,
+      })
+    );
+  }, [dispatch, page, size, selectedCategory]);
 
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-8">Sản phẩm</h1>
+
+      {/* Filters */}
+      <ProductFilter onFilterChange={handleFilterChange} />
+
+      {/* Product List */}
       <ProductList />
 
-      {/* Phân trang */}
-      <div className="flex justify-between items-center mt-8">
-        <div className="flex items-center gap-2">
-          <span>Hiển thị:</span>
-          <select
-            className="select select-bordered"
-            value={size}
-            onChange={handleSizeChange}
-          >
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
+      {/* Pagination */}
+      {!isLoading && items.length > 0 && (
+        <div className="mt-8 flex justify-center">
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            isFirst={isFirst}
+            isLast={isLast}
+            hasNext={hasNext}
+            hasPrevious={hasPrevious}
+            onPageChange={handlePageChange}
+            onSizeChange={handleSizeChange}
+          />
         </div>
-
-        <div className="join">
-          <button
-            className="join-item btn"
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 0 || isLoading}
-          >
-            «
-          </button>
-          {[...Array(totalPages)].map((_, index) => (
-            <button
-              key={index}
-              className={`join-item btn ${page === index ? 'btn-active' : ''}`}
-              onClick={() => handlePageChange(index)}
-              disabled={isLoading}
-            >
-              {index + 1}
-            </button>
-          ))}
-          <button
-            className="join-item btn"
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page >= totalPages - 1 || isLoading}
-          >
-            »
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

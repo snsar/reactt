@@ -14,8 +14,8 @@ import ProductCard from '../components/product/ProductCard';
 
 function Home() {
   const dispatch = useDispatch();
-  const { items, isLoading } = useSelector((state) => state.products);
-  const { categories, isLoading: categoriesLoading } = useSelector((state) => state.categories);
+  const { items: products, isLoading } = useSelector((state) => state.products);
+  const { items: categories, isLoading: categoriesLoading } = useSelector((state) => state.categories);
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState([0, 100000000]);
   const [filteredProducts, setFilteredProducts] = useState([]);
@@ -26,8 +26,8 @@ function Home() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (items.length > 0) {
-      const filtered = items.filter(product => {
+    if (products.length > 0) {
+      const filtered = products.filter(product => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
         const price = product.price;
         const matchesPrice = price >= priceRange[0] && price <= priceRange[1];
@@ -35,7 +35,7 @@ function Home() {
       });
       setFilteredProducts(filtered);
     }
-  }, [items, searchTerm, priceRange]);
+  }, [products, searchTerm, priceRange]);
 
   const heroSlides = [
     {
@@ -56,12 +56,12 @@ function Home() {
   ];
 
   // Lấy sản phẩm mới nhất (6 sản phẩm)
-  const newProducts = [...items]
+  const newProducts = [...products]
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, 6);
 
   // Lấy sản phẩm giảm giá (6 sản phẩm)
-  const discountedProducts = items
+  const discountedProducts = products
     .filter(product => product.discount > 0)
     .sort((a, b) => b.discount - a.discount)
     .slice(0, 6);
