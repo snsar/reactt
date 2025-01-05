@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { removeFromCart, updateQuantity, clearCart, setCartItems } from '../store/slices/cartSlice';
+import { clearCart, setCartItems } from '../store/slices/cartSlice';
 import { createOrder } from '../store/slices/orderSlice';
 import { toast } from 'react-toastify';
 import cartApi from '../api/cartApi';
@@ -10,15 +10,15 @@ import cartApi from '../api/cartApi';
 function Cart() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items, totalAmount, cartId } = useSelector((state) => state.cart);
-  const { user, token } = useSelector((state) => state.auth);
+  const { cartId, totalPrice, totalPriceAfterDiscount, totalItems, items } = useSelector((state) => state.cart);
+  const { token } = useSelector((state) => state.auth);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const [shippingInfo, setShippingInfo] = useState({
-    fullName: user?.fullName || '',
-    phone: user?.phone || '',
-    address: user?.address || '',
+    fullName: '',
+    phone: '',
+    address: '',
     note: ''
   });
 
@@ -43,30 +43,32 @@ function Cart() {
     fetchCart();
   }, [dispatch, token]);
 
-  const handleQuantityChange = async (id, newQuantity, stockQuantity) => {
-    if (newQuantity < 1) return;
-    if (newQuantity > stockQuantity) {
-      toast.warning(`Chỉ còn ${stockQuantity} sản phẩm trong kho`);
-      return;
-    }
+  const handleQuantityChange = async (cartItemId, productId, newQuantity) => {
     try {
       await cartApi.updateQuantity({
         cartId,
-        productId: id,
+        productId,
         quantity: newQuantity
       });
-      dispatch(updateQuantity({ id, quantity: newQuantity }));
-      toast.success('Đã cập nhật số lượng');
+      // Refresh cart after update
+      const response = await cartApi.viewCart();
+      if (response.data) {
+        dispatch(setCartItems(response.data));
+      }
     } catch (error) {
       console.error('Failed to update quantity:', error);
       toast.error('Không thể cập nhật số lượng');
     }
   };
 
-  const handleRemoveItem = async (id) => {
+  const handleRemoveItem = async (productId) => {
     try {
-      await cartApi.deleteCartItem(cartId, id);
-      dispatch(removeFromCart(id));
+      await cartApi.deleteCartItem(cartId, productId);
+      // Refresh cart after delete
+      const response = await cartApi.viewCart();
+      if (response.data) {
+        dispatch(setCartItems(response.data));
+      }
       toast.success('Đã xóa sản phẩm khỏi giỏ hàng');
     } catch (error) {
       console.error('Failed to remove item:', error);
@@ -74,22 +76,12 @@ function Cart() {
     }
   };
 
-  const calculateSubtotal = () => {
-    return items.reduce((total, item) => {
-      const price = item.discount > 0 
-        ? item.price * (1 - item.discount/100) 
-        : item.price;
-      return total + price * item.quantity;
-    }, 0);
-  };
-
   const calculateShippingFee = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal >= 1000000 ? 0 : 30000;
+    return totalPriceAfterDiscount >= 1000000 ? 0 : 30000;
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateShippingFee();
+    return totalPriceAfterDiscount + calculateShippingFee();
   };
 
   const handleShippingInfoChange = (e) => {
@@ -111,7 +103,7 @@ function Cart() {
       errors.phone = 'Số điện thoại không hợp lệ';
     }
     if (!shippingInfo.address.trim()) {
-      errors.address = 'Vui lòng nh���p địa chỉ giao hàng';
+      errors.address = 'Vui lòng nhập địa chỉ giao hàng';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -125,7 +117,7 @@ function Cart() {
     e.preventDefault();
     if (!validateForm()) return;
 
-    if (!user) {
+    if (!token) {
       toast.warning('Vui lòng đăng nhập để đặt hàng');
       navigate('/login');
       return;
@@ -142,13 +134,13 @@ function Cart() {
         })),
         shippingInfo,
         paymentMethod,
-        subtotal: calculateSubtotal(),
+        subtotal: totalPrice,
         shippingFee: calculateShippingFee(),
         total: calculateTotal()
       };
 
       const result = await dispatch(createOrder(orderData)).unwrap();
-      
+
       if (result.success) {
         if (paymentMethod === 'VNPAY' && result.paymentUrl) {
           window.location.href = result.paymentUrl;
@@ -170,105 +162,91 @@ function Cart() {
 
   if (isLoading) {
     return (
-      <div className="py-16 text-center">
-        <div className="loading loading-spinner loading-lg"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <span className="loading loading-spinner loading-lg"></span>
+        </div>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="py-16 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <i className="fas fa-shopping-cart text-6xl text-gray-300 mb-4"></i>
-          <h1 className="text-2xl font-bold mb-4">Vui lòng đăng nhập</h1>
-          <p className="text-gray-600 mb-8">Bạn cần đăng nhập để xem giỏ hàng</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Vui lòng đăng nhập để xem giỏ hàng</h2>
           <Link to="/login" className="btn btn-primary">
-            <i className="fas fa-sign-in-alt mr-2"></i>
             Đăng nhập
           </Link>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
-  if (items.length === 0) {
+  if (!items || items.length === 0) {
     return (
-      <div className="py-16 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <i className="fas fa-shopping-cart text-6xl text-gray-300 mb-4"></i>
-          <h1 className="text-2xl font-bold mb-4">Giỏ hàng trống</h1>
-          <p className="text-gray-600 mb-8">Bạn chưa có sản phẩm nào trong giỏ hàng</p>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Giỏ hàng trống</h2>
           <Link to="/products" className="btn btn-primary">
-            <i className="fas fa-shopping-bag mr-2"></i>
             Tiếp tục mua sắm
           </Link>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="py-8">
-      <h1 className="text-2xl font-bold mb-6">Giỏ hàng của bạn</h1>
-
+    <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <div className="p-6 space-y-4">
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Giỏ hàng của bạn</h2>
+            <div className="space-y-4">
               {items.map((item) => (
                 <motion.div
-                  key={item.id}
+                  key={item.cartItemId}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="flex items-center space-x-4 py-4 border-b last:border-0"
+                  className="flex items-start space-x-4 p-4 border rounded-lg"
                 >
-                  <Link to={`/products/${item.id}`} className="shrink-0">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-24 h-24 object-cover rounded"
-                    />
-                  </Link>
-                  <div className="flex-1 min-w-0">
-                    <Link to={`/products/${item.id}`}>
-                      <h3 className="font-medium hover:text-primary truncate">{item.name}</h3>
+                  <img
+                    src={item.imageUrl}
+                    alt={item.productName}
+                    className="w-24 h-24 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <Link to={`/products/${item.productId}`}>
+                      <h3 className="font-medium hover:text-primary truncate">{item.productName}</h3>
                     </Link>
                     <div className="mt-1 space-y-1">
                       {item.discount > 0 ? (
                         <>
                           <p className="text-primary font-medium">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price * (1 - item.discount/100))}
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(item.totalPriceAfterDiscount / item.quantity)}
                           </p>
                           <p className="text-sm text-gray-500 line-through">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(item.price)}
                           </p>
                         </>
                       ) : (
                         <p className="text-primary font-medium">
-                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(item.price)}
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(item.price)}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center space-x-2 mt-2">
                       <button
                         className="btn btn-sm btn-square"
-                        onClick={() => handleQuantityChange(item.id, item.quantity - 1, item.stockQuantity)}
-                        disabled={isCheckingOut}
+                        onClick={() => handleQuantityChange(item.cartItemId, item.productId, item.quantity - 1)}
+                        disabled={item.quantity <= 1 || isCheckingOut}
                       >
                         -
                       </button>
                       <span className="w-8 text-center">{item.quantity}</span>
                       <button
                         className="btn btn-sm btn-square"
-                        onClick={() => handleQuantityChange(item.id, item.quantity + 1, item.stockQuantity)}
+                        onClick={() => handleQuantityChange(item.cartItemId, item.productId, item.quantity + 1)}
                         disabled={isCheckingOut}
                       >
                         +
@@ -277,13 +255,11 @@ function Cart() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                        item.price * item.quantity * (1 - item.discount/100)
-                      )}
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(item.totalPriceAfterDiscount)}
                     </p>
                     <button
                       className="text-red-500 hover:text-red-700"
-                      onClick={() => handleRemoveItem(item.id)}
+                      onClick={() => handleRemoveItem(item.productId)}
                       disabled={isCheckingOut}
                     >
                       <i className="fas fa-trash-alt mr-1"></i>
@@ -306,27 +282,33 @@ function Cart() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600">Tạm tính</span>
-                <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateSubtotal())}</span>
+                <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(totalPrice)}</span>
               </div>
+              {totalPrice > totalPriceAfterDiscount && (
+                <div className="flex justify-between text-red-500">
+                  <span>Giảm giá</span>
+                  <span>-{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(totalPrice - totalPriceAfterDiscount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-gray-600">Phí vận chuyển</span>
                 <span>
-                  {calculateShippingFee() === 0 
-                    ? 'Miễn phí' 
-                    : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateShippingFee())
+                  {calculateShippingFee() === 0
+                    ? 'Miễn phí'
+                    : new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(calculateShippingFee())
                   }
                 </span>
               </div>
               {calculateShippingFee() > 0 && (
                 <p className="text-sm text-gray-500">
-                  Miễn phí vận chuyển cho đơn hàng trên 1.000.000₫
+                  Miễn phí vận chuyển cho đơn hàng trên {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(1000000)}
                 </p>
               )}
               <div className="border-t pt-3 mt-3">
                 <div className="flex justify-between font-semibold">
                   <span>Tổng cộng</span>
                   <span className="text-primary text-lg">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(calculateTotal())}
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(calculateTotal())}
                   </span>
                 </div>
               </div>
@@ -356,7 +338,7 @@ function Cart() {
                   disabled={isCheckingOut}
                 />
               </div>
-              
+
               <div>
                 <label className="label">
                   <span className="label-text">Số điện thoại</span>
@@ -372,7 +354,7 @@ function Cart() {
                   disabled={isCheckingOut}
                 />
               </div>
-              
+
               <div>
                 <label className="label">
                   <span className="label-text">Địa chỉ giao hàng</span>
@@ -388,7 +370,7 @@ function Cart() {
                   disabled={isCheckingOut}
                 />
               </div>
-              
+
               <div>
                 <label className="label">
                   <span className="label-text">Ghi chú</span>

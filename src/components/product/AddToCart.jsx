@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { addToCart } from '../../store/slices/cartSlice';
 import { toast } from 'react-toastify';
+import cartApi from '../../api/cartApi';
 
 function AddToCart({ product }) {
-  const dispatch = useDispatch();
   const [quantity, setQuantity] = useState(1);
   const [isAdding, setIsAdding] = useState(false);
 
@@ -17,25 +15,12 @@ function AddToCart({ product }) {
     setQuantity(newQuantity);
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     try {
       setIsAdding(true);
-      
-      dispatch(addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.imageUrl,
-        quantity: quantity,
-        discount: product.discount,
-        stockQuantity: product.stockQuantity
-      }));
-
-      toast.success('Đã thêm sản phẩm vào giỏ hàng');
-      setQuantity(1);
+      await cartApi.addToCart(product.productId, quantity);
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      toast.error('Không thể thêm sản phẩm vào giỏ hàng');
     } finally {
       setIsAdding(false);
     }
@@ -68,7 +53,7 @@ function AddToCart({ product }) {
             +
           </button>
         </div>
-        
+
         <button
           className="btn btn-primary flex-1"
           onClick={handleAddToCart}
@@ -99,4 +84,4 @@ function AddToCart({ product }) {
   );
 }
 
-export default AddToCart; 
+export default AddToCart;

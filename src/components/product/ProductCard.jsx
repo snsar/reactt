@@ -1,65 +1,33 @@
 import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '../../store/slices/cartSlice';
+import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { toast } from 'react-toastify';
 import { useState } from 'react';
 import cartApi from '../../api/cartApi';
 import Toast from '../common/Toast';
 
 function ProductCard({ product }) {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user, token } = useSelector((state) => state.auth);
+  const { token } = useSelector((state) => state.auth);
   const [toast, setToast] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
 
   const handleAddToCart = async (e) => {
     e.preventDefault(); // Ngăn chặn chuyển trang khi click vào nút thêm giỏ hàng
-    
+
     if (!token) {
-      setToast({
-        type: 'warning',
-        message: 'Vui lòng đăng nhập để mua hàng'
-      });
-      setTimeout(() => navigate('/login'), 2000);
+      navigate('/login');
       return;
     }
 
     try {
       setIsAdding(true);
-      const response = await cartApi.addToCart(product.productId, 1);
-      if (response.data) {
-        dispatch(addToCart({
-          id: product.productId,
-          name: product.name,
-          price: product.price,
-          image: product.imageUrl,
-          quantity: 1,
-          stockQuantity: product.stockQuantity,
-          discount: product.discount || 0
-        }));
-        setToast({
-          type: 'success',
-          message: 'Đã thêm sản phẩm vào giỏ hàng'
-        });
-      }
+      await cartApi.addToCart(product.productId, 1);
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      let errorMessage = 'Không thể thêm vào giỏ hàng. Vui lòng thử lại sau.';
-      if (error.response) {
-        if (error.response.status === 401) {
-          errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
-          setTimeout(() => navigate('/login'), 2000);
-        } else if (error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        }
+      if (error.response && error.response.status === 401) {
+        navigate('/login');
       }
-      setToast({
-        type: 'error',
-        message: errorMessage
-      });
     } finally {
       setIsAdding(false);
     }
@@ -73,15 +41,15 @@ function ProductCard({ product }) {
 
   return (
     <Link to={`/products/${product.productId}`}>
-      <motion.div 
+      <motion.div
         className="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 h-full"
         whileHover={{ y: -5 }}
       >
         <figure className="relative pt-[100%] overflow-hidden">
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-500 hover:scale-110" 
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="absolute top-0 left-0 w-full h-full object-cover transition-transform duration-500 hover:scale-110"
           />
           {discountPercent > 0 && (
             <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-bold">
@@ -130,7 +98,7 @@ function ProductCard({ product }) {
             </div>
           </div>
 
-          <motion.button 
+          <motion.button
             className={`btn mt-4 w-full ${product.stockQuantity === 0 ? 'btn-disabled' : 'btn-primary'}`}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
